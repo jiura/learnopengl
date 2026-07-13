@@ -4,6 +4,7 @@ import "base:runtime"
 
 import "core:c"
 import "core:fmt"
+import "core:math"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
@@ -131,6 +132,10 @@ main :: proc() {
 
 	gl.load_up_to(OPENGL_MAJOR, OPENGL_MINOR, glfw.gl_set_proc_address)
 
+	// nrAttribs: c.int
+	// gl.GetIntegerv(gl.MAX_VERTEX_ATTRIBS, &nrAttribs)
+	// fmt.println(nrAttribs)
+
 	// GLFW setup --- END
 
 	setup_callbacks(window)
@@ -143,12 +148,8 @@ main :: proc() {
 	// Vertex shader
 	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
 
-	vertexShaderSource: cstring =
-		"#version 330 core\n" +
-		"layout (location = 0) in vec3 aPos;\n" +
-		"void main() {\n" +
-		"	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f);\n" +
-		"}"
+	vertexShaderSource: cstring = #load("shaders/vertex_shader.glsl", cstring) or_else ""
+	if vertexShaderSource == "" do panic("Couldn't find vertex shader file")
 	gl.ShaderSource(vertexShader, 1, &vertexShaderSource, nil)
 
 	gl.CompileShader(vertexShader)
@@ -159,64 +160,29 @@ main :: proc() {
 	}
 
 	// Fragment shader
-	orangeFragShader := gl.CreateShader(gl.FRAGMENT_SHADER)
+	fragShader := gl.CreateShader(gl.FRAGMENT_SHADER)
 
-	orangeFragShaderSource: cstring =
-		"#version 330 core\n" +
-		"out vec4 FragColor;\n" +
-		"void main() {\n" +
-		"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n" +
-		"}"
-	gl.ShaderSource(orangeFragShader, 1, &orangeFragShaderSource, nil)
+	fragShaderSource: cstring = #load("shaders/fragment_shader.glsl", cstring) or_else ""
+	if fragShaderSource == "" do panic("Couldn't find fragment shader file")
+	gl.ShaderSource(fragShader, 1, &fragShaderSource, nil)
 
-	gl.CompileShader(orangeFragShader)
-	gl.GetShaderiv(orangeFragShader, gl.COMPILE_STATUS, &success)
+	gl.CompileShader(fragShader)
+	gl.GetShaderiv(fragShader, gl.COMPILE_STATUS, &success)
 	if success == 0 {
-		gl.GetShaderInfoLog(orangeFragShader, size_of(infoLog), nil, &infoLog[0])
-		fmt.println(string(infoLog[:]))
-	}
-
-	yellowFragShader := gl.CreateShader(gl.FRAGMENT_SHADER)
-
-	yellowFragShaderSource: cstring =
-		"#version 330 core\n" +
-		"out vec4 FragColor;\n" +
-		"void main() {\n" +
-		"	FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n" +
-		"}"
-	gl.ShaderSource(yellowFragShader, 1, &yellowFragShaderSource, nil)
-
-	gl.CompileShader(yellowFragShader)
-	gl.GetShaderiv(orangeFragShader, gl.COMPILE_STATUS, &success)
-	if success == 0 {
-		gl.GetShaderInfoLog(yellowFragShader, size_of(infoLog), nil, &infoLog[0])
+		gl.GetShaderInfoLog(fragShader, size_of(infoLog), nil, &infoLog[0])
 		fmt.println(string(infoLog[:]))
 	}
 
 	// Link shaders
 
-	orangeShaderProgram := gl.CreateProgram()
-	gl.AttachShader(orangeShaderProgram, vertexShader)
-	gl.AttachShader(orangeShaderProgram, orangeFragShader)
-	gl.LinkProgram(orangeShaderProgram)
+	shaderProgram := gl.CreateProgram()
+	gl.AttachShader(shaderProgram, vertexShader)
+	gl.AttachShader(shaderProgram, fragShader)
+	gl.LinkProgram(shaderProgram)
 
-	gl.GetProgramiv(orangeShaderProgram, gl.LINK_STATUS, &success)
+	gl.GetProgramiv(shaderProgram, gl.LINK_STATUS, &success)
 	if success == 0 {
-		gl.GetProgramInfoLog(orangeShaderProgram, size_of(infoLog), nil, &infoLog[0])
-		fmt.println(string(infoLog[:]))
-	}
-
-	gl.DeleteShader(vertexShader)
-	gl.DeleteShader(orangeFragShader)
-
-	yellowShaderProgram := gl.CreateProgram()
-	gl.AttachShader(yellowShaderProgram, vertexShader)
-	gl.AttachShader(yellowShaderProgram, yellowFragShader)
-	gl.LinkProgram(yellowShaderProgram)
-
-	gl.GetProgramiv(yellowShaderProgram, gl.LINK_STATUS, &success)
-	if success == 0 {
-		gl.GetProgramInfoLog(yellowShaderProgram, size_of(infoLog), nil, &infoLog[0])
+		gl.GetProgramInfoLog(shaderProgram, size_of(infoLog), nil, &infoLog[0])
 		fmt.println(string(infoLog[:]))
 	}
 
@@ -235,7 +201,13 @@ main :: proc() {
 		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gl.UseProgram(orangeShaderProgram)
+		gl.UseProgram(shaderProgram)
+
+		timeVal := glfw.GetTime()
+		colorVal := f32((math.sin(timeVal) / 2.0) + 0.5)
+		vertexColorLocation := gl.GetUniformLocation(shaderProgram, "ourColor")
+		if vertexColorLocation == -1 do panic("Couldn't find \"ourColor\" uniform location")
+		gl.Uniform4f(vertexColorLocation, 0.0, colorVal, 0.0, 1.0)
 
 		switch _viewMode {
 		case ViewMode.TwoTriangles:
@@ -246,12 +218,10 @@ main :: proc() {
 			gl.BindVertexArray(triangleOneVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
 
-			gl.UseProgram(yellowShaderProgram)
+			gl.Uniform4f(vertexColorLocation, 0.0, 0.0, colorVal, 1.0)
 
 			gl.BindVertexArray(triangleTwoVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
-
-			gl.UseProgram(orangeShaderProgram)
 			break
 
 		case ViewMode.Rectangle:
@@ -261,6 +231,8 @@ main :: proc() {
 
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
+
+		gl.BindVertexArray(0)
 	}
 
 	// Main loop --- END
