@@ -4,14 +4,14 @@ import "core:c"
 
 get_rectangle_VAO :: proc() -> c.uint {
 	vertices := [?]f32 {
-		// top right
-		0.5, 0.5, 0.0,
-		// bottom right
-		0.5, -0.5, 0.0,
-		// bottom left
-		-0.5, -0.5, 0.0,
-		// top left
-		-0.5, 0.5, 0.0,
+		// top right   // color
+		0.5, 0.5, 0.0, 1.0, 0.0, 0.0,
+		// bottom right // color
+		0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
+		// bottom left   // color
+		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0,
+		// top left     // color
+		-0.5, 0.5, 0.0, 1.0, 1.0, 1.0,
 	}
 
 	indices := [?]c.uint {

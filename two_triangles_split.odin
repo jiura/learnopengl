@@ -4,9 +4,10 @@ import "core:c"
 
 get_triangle_one_VAO :: proc() -> c.uint{
 	vertices := [?]f32 {
-		-1.0, 0.0, 0.0,
-		-0.5, 1.0, 0.0,
-		0.0, 0.0, 0.0,
+		// pos			// color
+		-1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+		-0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0,  0.0, 0.0, 1.0,
 	}
 
 	VAO, hasError := create_VAO(vertices[:], nil)
@@ -19,9 +20,10 @@ get_triangle_one_VAO :: proc() -> c.uint{
 
 get_triangle_two_VAO :: proc() -> c.uint{
 	vertices := [?]f32 {
-		0.0, 0.0, 0.0,
-		0.5, 1.0, 0.0,
-		1.0, 0.0, 0.0,
+		// pos		   // color	
+		0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+		0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+		1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 	}
 
 	VAO, hasError := create_VAO(vertices[:], nil)

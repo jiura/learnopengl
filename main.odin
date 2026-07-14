@@ -4,7 +4,6 @@ import "base:runtime"
 
 import "core:c"
 import "core:fmt"
-import "core:math"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
@@ -18,6 +17,7 @@ OPENGL_MAJOR :: 3
 OPENGL_MINOR :: 3
 
 ViewMode :: enum u8 {
+	Triangle,
 	TwoTriangles,
 	TwoTrianglesSplit,
 	Rectangle,
@@ -25,7 +25,7 @@ ViewMode :: enum u8 {
 
 _running: b32 = true
 _wireframeMode := false
-_viewMode := ViewMode.TwoTriangles
+_viewMode := ViewMode(0)
 
 next_view_mode :: proc(m: ViewMode) -> ViewMode {
 	return ViewMode((u32(m) + 1) % len(ViewMode))
@@ -52,6 +52,14 @@ create_VAO :: proc(vertices: []f32, indices: []c.uint) -> (c.uint, HasError) {
 		gl.STATIC_DRAW,
 	)
 
+	// First arg is for attribute location
+	// Position
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), 0)
+	gl.EnableVertexAttribArray(0)
+	// Color
+	gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), 3 * size_of(f32))
+	gl.EnableVertexAttribArray(1)
+
 	if len(indices) > 0 {
 		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
 		gl.BufferData(
@@ -62,10 +70,6 @@ create_VAO :: proc(vertices: []f32, indices: []c.uint) -> (c.uint, HasError) {
 		)
 	}
 
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * size_of(f32), 0)
-	gl.EnableVertexAttribArray(0)
-
-	// Unbiding for the sake of it
 	gl.BindVertexArray(0) // VAO should be unbound before unbiding EBO, otherwise the VAO loses the EBO bound to it
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
@@ -188,6 +192,7 @@ main :: proc() {
 
 	// Vertex data
 
+	triangleVAO := get_triangle_VAO()
 	twoTrianglesVAO := get_two_triangles_VAO()
 	triangleOneVAO := get_triangle_one_VAO()
 	triangleTwoVAO := get_triangle_two_VAO()
@@ -203,13 +208,11 @@ main :: proc() {
 
 		gl.UseProgram(shaderProgram)
 
-		timeVal := glfw.GetTime()
-		colorVal := f32((math.sin(timeVal) / 2.0) + 0.5)
-		vertexColorLocation := gl.GetUniformLocation(shaderProgram, "ourColor")
-		if vertexColorLocation == -1 do panic("Couldn't find \"ourColor\" uniform location")
-		gl.Uniform4f(vertexColorLocation, 0.0, colorVal, 0.0, 1.0)
-
 		switch _viewMode {
+		case ViewMode.Triangle:
+			gl.BindVertexArray(triangleVAO)
+			gl.DrawArrays(gl.TRIANGLES, 0, 3)
+
 		case ViewMode.TwoTriangles:
 			gl.BindVertexArray(twoTrianglesVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 6)
@@ -217,8 +220,6 @@ main :: proc() {
 		case ViewMode.TwoTrianglesSplit:
 			gl.BindVertexArray(triangleOneVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
-
-			gl.Uniform4f(vertexColorLocation, 0.0, 0.0, colorVal, 1.0)
 
 			gl.BindVertexArray(triangleTwoVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
