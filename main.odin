@@ -1,9 +1,11 @@
 package main
 
-import "base:runtime"
-
 import "core:c"
 import "core:fmt"
+import "core:math"
+import "core:strings"
+
+import "base:runtime"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
@@ -75,6 +77,13 @@ create_VAO :: proc(vertices: []f32, indices: []c.uint) -> (c.uint, HasError) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
 
 	return VAO, false
+}
+
+// Works for current shader program, might error out if none is set
+get_uniform_location :: proc(shader: c.uint, name: cstring) -> c.int {
+	vertexColorLocation := gl.GetUniformLocation(shader, name)
+	if vertexColorLocation == -1 do panic(strings.concatenate([]string{"Couldn't find \"", string(name), "\" uniform location"}))
+	return vertexColorLocation
 }
 
 setup_callbacks :: proc(window: glfw.WindowHandle) {
@@ -208,8 +217,13 @@ main :: proc() {
 
 		gl.UseProgram(shaderProgram)
 
+		xOffsetUniform := get_uniform_location(shaderProgram, "x_offset")
+		gl.Uniform1f(xOffsetUniform, 0.0)
+
 		switch _viewMode {
 		case ViewMode.Triangle:
+			gl.Uniform1f(xOffsetUniform, 0.5)
+
 			gl.BindVertexArray(triangleVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
 
