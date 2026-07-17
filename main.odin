@@ -1,14 +1,16 @@
+// FIXME: Also add texture coords for shapes other than rectangle
+
 package main
 
 import "core:c"
 import "core:fmt"
-import "core:math"
 import "core:strings"
 
 import "base:runtime"
 
 import gl "vendor:OpenGL"
 import "vendor:glfw"
+import stbi "vendor:stb/image"
 
 HasError :: bool
 
@@ -56,11 +58,14 @@ create_VAO :: proc(vertices: []f32, indices: []c.uint) -> (c.uint, HasError) {
 
 	// First arg is for attribute location
 	// Position
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), 0)
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 8 * size_of(f32), 0)
 	gl.EnableVertexAttribArray(0)
 	// Color
-	gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), 3 * size_of(f32))
+	gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 8 * size_of(f32), 3 * size_of(f32))
 	gl.EnableVertexAttribArray(1)
+	// Texture coords
+	gl.VertexAttribPointer(2, 2, gl.FLOAT, gl.FALSE, 8 * size_of(f32), 6 * size_of(f32))
+	gl.EnableVertexAttribArray(2)
 
 	if len(indices) > 0 {
 		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
@@ -207,6 +212,28 @@ main :: proc() {
 	triangleTwoVAO := get_triangle_two_VAO()
 	rectVAO := get_rectangle_VAO()
 
+	// Texture
+
+	texture: c.uint
+	gl.GenTextures(1, &texture)
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+	imgW, imgH, nrChans: c.int
+	imgData := stbi.load("assets/container.jpg", &imgW, &imgH, &nrChans, 0)
+
+	if (imgData == nil) do panic("Couldn't load assets/container.jpg data")
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, imgW, imgH, 0, gl.RGB, gl.UNSIGNED_BYTE, imgData)
+	gl.GenerateMipmap(gl.TEXTURE_2D)
+
+	gl.BindTexture(gl.TEXTURE_2D, 0)
+	stbi.image_free(imgData)
+
 	// Init --- END
 
 	// Main loop --- START
@@ -219,6 +246,8 @@ main :: proc() {
 
 		xOffsetUniform := get_uniform_location(shaderProgram, "x_offset")
 		gl.Uniform1f(xOffsetUniform, 0.0)
+
+		gl.BindTexture(gl.TEXTURE_2D, texture)
 
 		switch _viewMode {
 		case ViewMode.Triangle:
@@ -237,7 +266,6 @@ main :: proc() {
 
 			gl.BindVertexArray(triangleTwoVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
-			break
 
 		case ViewMode.Rectangle:
 			gl.BindVertexArray(rectVAO)

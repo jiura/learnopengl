@@ -12,7 +12,13 @@ get_triangle_VAO :: proc() -> c.uint{
 
 	VAO, hasError := create_VAO(vertices[:], nil)
 	if hasError {
-		panic("Error creating two triangles VAO")
+		panic("Error creating triangle VAO")
+	}
+
+	texCoords := [?]f32 {
+		0.0, 0.0, // lower-left
+		1.0, 0.0, // lower-right
+		0.5, 1.0, // top-center
 	}
 
 	return VAO
