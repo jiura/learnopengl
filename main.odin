@@ -245,11 +245,12 @@ main :: proc() {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
-	imgData = stbi.load("assets/wall.jpg", &imgW, &imgH, &nrChans, 0)
+	stbi.set_flip_vertically_on_load(c.int(true))
+	imgData = stbi.load("assets/awesomeface.png", &imgW, &imgH, &nrChans, 0)
 
-	if (imgData == nil) do panic("Couldn't load assets/wall.jpg data")
+	if (imgData == nil) do panic("Couldn't load assets/awsomeface.jpg data")
 
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, imgW, imgH, 0, gl.RGB, gl.UNSIGNED_BYTE, imgData)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, imgW, imgH, 0, gl.RGBA, gl.UNSIGNED_BYTE, imgData)
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
 	stbi.image_free(imgData)
