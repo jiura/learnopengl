@@ -174,7 +174,7 @@ main :: proc() {
 	gl.GetShaderiv(vertexShader, gl.COMPILE_STATUS, &success)
 	if success == 0 {
 		gl.GetShaderInfoLog(vertexShader, size_of(infoLog), nil, &infoLog[0])
-		fmt.println(string(infoLog[:]))
+		fmt.println(cstring(&infoLog[0]))
 	}
 
 	// Fragment shader
@@ -189,6 +189,7 @@ main :: proc() {
 	if success == 0 {
 		gl.GetShaderInfoLog(fragShader, size_of(infoLog), nil, &infoLog[0])
 		fmt.println(string(infoLog[:]))
+		fmt.println(cstring(&infoLog[0]))
 	}
 
 	// Link shaders
@@ -201,7 +202,7 @@ main :: proc() {
 	gl.GetProgramiv(shaderProgram, gl.LINK_STATUS, &success)
 	if success == 0 {
 		gl.GetProgramInfoLog(shaderProgram, size_of(infoLog), nil, &infoLog[0])
-		fmt.println(string(infoLog[:]))
+		fmt.println(cstring(&infoLog[0]))
 	}
 
 	// Vertex data
@@ -212,11 +213,12 @@ main :: proc() {
 	triangleTwoVAO := get_triangle_two_VAO()
 	rectVAO := get_rectangle_VAO()
 
-	// Texture
+	// Textures
 
-	texture: c.uint
-	gl.GenTextures(1, &texture)
-	gl.BindTexture(gl.TEXTURE_2D, texture)
+	texture1: c.uint
+	gl.GenTextures(1, &texture1)
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, texture1)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
@@ -231,8 +233,32 @@ main :: proc() {
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, imgW, imgH, 0, gl.RGB, gl.UNSIGNED_BYTE, imgData)
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
-	gl.BindTexture(gl.TEXTURE_2D, 0)
 	stbi.image_free(imgData)
+
+	texture2: c.uint
+	gl.GenTextures(1, &texture2)
+	gl.ActiveTexture(gl.TEXTURE1)
+	gl.BindTexture(gl.TEXTURE_2D, texture2)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+	imgData = stbi.load("assets/wall.jpg", &imgW, &imgH, &nrChans, 0)
+
+	if (imgData == nil) do panic("Couldn't load assets/wall.jpg data")
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, imgW, imgH, 0, gl.RGB, gl.UNSIGNED_BYTE, imgData)
+	gl.GenerateMipmap(gl.TEXTURE_2D)
+
+	stbi.image_free(imgData)
+
+	// gl.BindTexture(gl.TEXTURE_2D, 0)
+
+	gl.UseProgram(shaderProgram)
+	gl.Uniform1i(get_uniform_location(shaderProgram, "texture1"), 0)
+	gl.Uniform1i(get_uniform_location(shaderProgram, "texture2"), 1)
 
 	// Init --- END
 
@@ -242,12 +268,8 @@ main :: proc() {
 		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gl.UseProgram(shaderProgram)
-
 		xOffsetUniform := get_uniform_location(shaderProgram, "x_offset")
 		gl.Uniform1f(xOffsetUniform, 0.0)
-
-		gl.BindTexture(gl.TEXTURE_2D, texture)
 
 		switch _viewMode {
 		case ViewMode.Triangle:
