@@ -30,6 +30,7 @@ ViewMode :: enum u8 {
 _running: b32 = true
 _wireframeMode := false
 _viewMode := ViewMode(0)
+_texMixAlpha: f32 = 0.5
 
 next_view_mode :: proc(m: ViewMode) -> ViewMode {
 	return ViewMode((u32(m) + 1) % len(ViewMode))
@@ -103,6 +104,12 @@ setup_callbacks :: proc(window: glfw.WindowHandle) {
 		context = runtime.default_context()
 
 		if action != glfw.PRESS {
+			if key == glfw.KEY_UP {
+				_texMixAlpha = clamp(_texMixAlpha + 0.05, 0.0, 1.0)
+			} else if key == glfw.KEY_DOWN {
+				_texMixAlpha = clamp(_texMixAlpha - 0.05, 0.0, 1.0)
+			}
+
 			return
 		}
 
@@ -222,8 +229,8 @@ main :: proc() {
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
 	imgW, imgH, nrChans: c.int
 	imgData := stbi.load("assets/container.jpg", &imgW, &imgH, &nrChans, 0)
@@ -242,8 +249,8 @@ main :: proc() {
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
 	stbi.set_flip_vertically_on_load(c.int(true))
 	imgData = stbi.load("assets/awesomeface.png", &imgW, &imgH, &nrChans, 0)
@@ -261,6 +268,9 @@ main :: proc() {
 	gl.Uniform1i(get_uniform_location(shaderProgram, "texture1"), 0)
 	gl.Uniform1i(get_uniform_location(shaderProgram, "texture2"), 1)
 
+	uni_xOffset := get_uniform_location(shaderProgram, "x_offset")
+	uni_texMixAlpha := get_uniform_location(shaderProgram, "texMixAlpha")
+
 	// Init --- END
 
 	// Main loop --- START
@@ -269,12 +279,12 @@ main :: proc() {
 		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		xOffsetUniform := get_uniform_location(shaderProgram, "x_offset")
-		gl.Uniform1f(xOffsetUniform, 0.0)
+		gl.Uniform1f(uni_xOffset, 0.0)
+		gl.Uniform1f(uni_texMixAlpha, _texMixAlpha)
 
 		switch _viewMode {
 		case ViewMode.Triangle:
-			gl.Uniform1f(xOffsetUniform, 0.5)
+			gl.Uniform1f(uni_xOffset, 0.5)
 
 			gl.BindVertexArray(triangleVAO)
 			gl.DrawArrays(gl.TRIANGLES, 0, 3)
