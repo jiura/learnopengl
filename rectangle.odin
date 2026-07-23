@@ -5,10 +5,10 @@ import "core:c"
 get_rectangle_VAO :: proc() -> c.uint {
 	vertices := [?]f32 {
 		// pos           // color       // texture coords
-		0.5, 0.5, 0.0,   1.0, 0.0, 0.0, 2.0, 2.0, // top right
-		0.5, -0.5, 0.0,  0.0, 1.0, 0.0, 2.0, 0.0, // bottom right
-		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
-		-0.5, 0.5, 0.0,  1.0, 1.0, 1.0, 0.0, 2.0, // top left
+		0.5, 0.5, 0.0,   1.0, 0.0, 0.0, 0.55, 0.55, // top right
+		0.5, -0.5, 0.0,  0.0, 1.0, 0.0, 0.55, 0.45, // bottom right
+		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.45, 0.45, // bottom left
+		-0.5, 0.5, 0.0,  1.0, 1.0, 1.0, 0.45, 0.55, // top left
 	}
 
 	indices := [?]c.uint {
